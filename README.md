@@ -1,4 +1,4 @@
-# a443-cc-pipeline
+# IMDB Review Pipeline
 Ini adalah repositori untuk latihan pada kelas Machine Learning Operations (MLOps)
 
 - Install CLI heroku ([tautan](https://devcenter.heroku.com/articles/heroku-cli#install-the-heroku-cli))

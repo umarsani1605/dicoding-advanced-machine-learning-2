@@ -1,6 +1,6 @@
-FROM tensorflow/serving:latest
+FROM emacski/tensorflow-serving:latest
 
-COPY ./output/serving_model saved-model
+COPY ./output/serving_model models/imdb-review-model
 
 ENV MODEL_NAME=imdb-review-model
 ENV PORT=8501
