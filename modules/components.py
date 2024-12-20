@@ -1,8 +1,6 @@
-"""Initiate tfx pipeline components
-"""
- 
+"""Initiate TFX pipeline components."""
+
 import os
- 
 import tensorflow as tf
 import tensorflow_model_analysis as tfma
 from tfx.components import (
@@ -19,57 +17,45 @@ from tfx.proto import example_gen_pb2, trainer_pb2, pusher_pb2
 from tfx.types import Channel
 from tfx.dsl.components.common.resolver import Resolver
 from tfx.types.standard_artifacts import Model, ModelBlessing
-from tfx.dsl.input_resolution.strategies.latest_blessed_model_strategy import (
-    LatestBlessedModelStrategy)
- 
+from tfx.dsl.input_resolution.strategies.latest_blessed_model_strategy import LatestBlessedModelStrategy
+
 def init_components(
-    data_dir,
-    transform_module,
-    training_module,
-    serving_model_dir,
+    data_dir: str,
+    transform_module: str,
+    training_module: str,
+    serving_model_dir: str,
 ):
-    """Initiate tfx pipeline components
+    """Inisiasi komponen pipeline TFX.
   
     Args:
-        data_dir (str): a path to the data
-        transform_module (str): a path to the transform_module
-        training_module (str): a path to the transform_module
-        training_steps (int): number of training steps
-        eval_steps (int): number of eval steps
-        serving_model_dir (str): a path to the serving model directory
+        data_dir (str): Path ke data.
+        transform_module (str): Path ke modul transformasi.
+        training_module (str): Path ke modul pelatihan.
+        serving_model_dir (str): Path ke direktori model.
  
     Returns:
-        TFX components
+        List: Daftar komponen TFX.
     """
-    output = example_gen_pb2.Output(
-        split_config = example_gen_pb2.SplitConfig(splits=[
+    output_config = example_gen_pb2.Output(
+        split_config=example_gen_pb2.SplitConfig(splits=[
             example_gen_pb2.SplitConfig.Split(name="train", hash_buckets=8),
             example_gen_pb2.SplitConfig.Split(name="eval", hash_buckets=2)
         ])
     )
     
-    example_gen = CsvExampleGen(input_base=data_dir, output_config=output)
-    
-    statistics_gen = StatisticsGen(
-        examples=example_gen.outputs["examples"]   
-    )
-    
-    schema_gen = SchemaGen(
-        statistics=statistics_gen.outputs["statistics"]
-    )
-    
+    example_gen = CsvExampleGen(input_base=data_dir, output_config=output_config)
+    statistics_gen = StatisticsGen(examples=example_gen.outputs["examples"])
+    schema_gen = SchemaGen(statistics=statistics_gen.outputs["statistics"])
     example_validator = ExampleValidator(
         statistics=statistics_gen.outputs['statistics'],
         schema=schema_gen.outputs['schema']
     )
-    
-    transform  = Transform(
+    transform = Transform(
         examples=example_gen.outputs['examples'],
-        schema= schema_gen.outputs['schema'],
+        schema=schema_gen.outputs['schema'],
         module_file=os.path.abspath(transform_module)
     )
-    
-    trainer  = Trainer(
+    trainer = Trainer(
         module_file=os.path.abspath(training_module),
         examples=transform.outputs['transformed_examples'],
         transform_graph=transform.outputs['transform_graph'],
@@ -77,7 +63,6 @@ def init_components(
         train_args=trainer_pb2.TrainArgs(splits=['train']),
         eval_args=trainer_pb2.EvalArgs(splits=['eval'])
     )
-    
     model_resolver = Resolver(
         strategy_class=LatestBlessedModelStrategy,
         model=Channel(type=Model),
@@ -89,14 +74,15 @@ def init_components(
         tfma.MetricConfig(class_name='Precision'),
         tfma.MetricConfig(class_name='Recall'),
         tfma.MetricConfig(class_name='F1Score'),
-        tfma.MetricConfig(class_name='BinaryAccuracy',
+        tfma.MetricConfig(
+            class_name='BinaryAccuracy',
             threshold=tfma.MetricThreshold(
-                value_threshold=tfma.GenericValueThreshold(
-                    lower_bound={'value':0.5}),
+                value_threshold=tfma.GenericValueThreshold(lower_bound={'value': 0.5}),
                 change_threshold=tfma.GenericChangeThreshold(
                     direction=tfma.MetricDirection.HIGHER_IS_BETTER,
-                    absolute={'value':0.0001})
+                    absolute={'value': 0.0001}
                 )
+            )
         )
     ])
  
@@ -110,7 +96,8 @@ def init_components(
         examples=transform.outputs['transformed_examples'],
         model=trainer.outputs['model'],
         baseline_model=model_resolver.outputs['model'],
-        eval_config=eval_config)
+        eval_config=eval_config
+    )
     
     pusher = Pusher(
         model=trainer.outputs["model"],
