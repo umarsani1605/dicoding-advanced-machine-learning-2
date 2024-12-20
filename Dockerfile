@@ -5,6 +5,8 @@ COPY ./output/serving_model models/imdb-review-model
 ENV MODEL_NAME=imdb-review-model
 ENV PORT=8501
 
+RUN apt-get update && apt-get install -y coreutils
+
 RUN echo '#!/bin/bash \n\n\
   env \n\
   tensorflow_model_server --port=8500 --rest_api_port=${PORT} \
